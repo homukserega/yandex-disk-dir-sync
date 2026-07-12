@@ -1,10 +1,17 @@
 import requests
+import configparser
+import os
+config = configparser.ConfigParser()
+config_file = "../app-config.ini"
+config_file_path = os.path.join("..", "app-config.ini")
 
 # Данные для авторизации и настройки
-TOKEN = 'ваш_токен_доступа'            # OAuth-токен
-LOCAL_FILE = 'test_file_to_send.txt'      # путь к файлу на компьютере
-DISK_PATH = f'test_file_to_send/{LOCAL_FILE}'  # куда сохранить на Диске
-OVERWRITE = 'true'                     # перезаписывать при совпадении имён
+config.read(config_file_path)
+TOKEN = config["TOKEN"]["oath_token"]
+LOCAL_FILE = config["LOCAL"]["file"]              # локальный файл
+YANDEX_DISK_PATH = config["YANDEX_DISK"]["path"]
+DISK_PATH = f'{YANDEX_DISK_PATH}/{LOCAL_FILE}'    # куда сохранить на Диске
+OVERWRITE = config["OVERWRITE"]["value"]          # перезаписывать при совпадении имён
 
 # Шаг 1. Запрашиваем ссылку для загрузки
 url = 'https://cloud-api.yandex.net/v1/disk/resources/upload'

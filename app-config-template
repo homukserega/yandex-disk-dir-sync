@@ -1,0 +1,17 @@
+[DEFAULT]
+serveraliveinterval = 30
+compression = yes
+compressionlevel = 9
+
+[TOKEN]
+oath_token = YANDEX OATH-token
+
+[LOCAL]
+file = user file
+
+[YANDEX_DISK]
+path = folder on yandex DISK
+
+[OVERWRITE]
+value = true
+
