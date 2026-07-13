@@ -15,7 +15,7 @@ class YandexDisk:
         self.url_to_upload = "https://cloud-api.yandex.net/v1/disk/resources/upload"
         self.yandex_disk_path = os.getenv('YANDEX_DISK_PATH')
 
-    def overwrite_existing_file(self, local_file_path, file_name):
+    def overwrite_existing_single_file(self, local_file_path, file_name):
         """
         Method Upload single file to Yandex disk_path.
         :param local_file_path: example - /home/lenovo/github-repo/Sevise-files-sync/src
