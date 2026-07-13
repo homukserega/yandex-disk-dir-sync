@@ -1,26 +1,22 @@
 import requests
 import configparser
 import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
-config = configparser.ConfigParser()
-config_file = "../app-config.ini"
-config_file_path = os.path.join("..", "app-config.ini")
 
 # Данные для авторизации и настройки
-config.read(config_file_path)
-TOKEN = config["TOKEN"]["oath_token"]
-LOCAL_FILE = config["LOCAL"]["file"]              # локальный файл
-YANDEX_DISK_PATH = config["YANDEX_DISK"]["path"]
-DISK_PATH = f'{YANDEX_DISK_PATH}/{LOCAL_FILE}'    # куда сохранить на Диске
-OVERWRITE = config["OVERWRITE"]["value"]          # перезаписывать при совпадении имён в нашем случае = true
-URL_TO_UPLOAD = config["YANDEX_DISK"]["url_to_upload"]
+TOKEN = os.getenv('TOKEN')
+URL_TO_UPLOAD = "https://cloud-api.yandex.net/v1/disk/resources/upload"
+DISK_PATH = os.getenv('DISK_PATH')
+DISK_PATH = f'{DISK_PATH}/test_file_to_send.txt'    # куда сохранить на Диске
 
 # Шаг 1. Запрашиваем ссылку для загрузки
 url = URL_TO_UPLOAD
 params = {
     'path': DISK_PATH,
-    'overwrite': OVERWRITE,   # можно также 'false' или не указывать
+    'overwrite': "true",   # можно также 'false' или не указывать
     # 'fields': 'href,method' # опционально – какие поля включить в ответ
 }
 headers = {
@@ -36,7 +32,7 @@ data = response.json()
 upload_url = data['href']    # ссылка для PUT-запроса
 
 # Шаг 3. Загружаем файл по полученной ссылке
-with open(LOCAL_FILE, 'rb') as f:
+with open("test_file_to_send.txt", 'rb') as f:
     upload_response = requests.put(upload_url, data=f)
     upload_response.raise_for_status()
 
