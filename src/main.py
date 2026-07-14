@@ -1,8 +1,15 @@
-from controller import YandexDisk
+import os
 
-yandex_disk = YandexDisk()
+from dotenv import load_dotenv
 
-yandex_disk.overwrite_existing_file(
-    local_file_path="/home/lenovo/github-repo/Sevise-files-sync/src",
-    file_name="test_file_to_send.txt"
-)
+load_dotenv()
+
+from connectors import YandexDiskConnector
+
+yandex_disk = YandexDiskConnector()
+
+yandex_disk.token = os.getenv("YANDEX_TOKEN")
+yandex_disk.yandex_disk_path = os.getenv("YANDEX_DISK_PATH")
+yandex_disk.local_path = "/home/lenovo/github-repo/Sevise-files-sync/src"
+
+# yandex_disk.overwrite_existing_file("test_file_to_sync.txt")
