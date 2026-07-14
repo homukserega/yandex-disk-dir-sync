@@ -61,11 +61,8 @@ class YandexDiskConnector:
             'overwrite': "true",  # можно также 'false' или не указывать
             # 'fields': 'href,method' # опционально – какие поля включить в ответ
         }
-        response = requests.get(
-            "https://cloud-api.yandex.net/v1/disk/resources/upload",
-            params=params,
-            headers=self.get_headers(),
-        )
+        url = "https://cloud-api.yandex.net/v1/disk/resources/upload"
+        response = requests.get(url, params=params, headers=self.get_headers())
         data = response.json()
         href = data['href']
         # 2. read local file to br uploaded
@@ -73,4 +70,26 @@ class YandexDiskConnector:
             file = file.read()
         # 3. Upload file to Yandex DISK
         response = requests.put(href, data=file, headers=self.get_headers())
-        print(response.status_code)
+        if response.status_code == 200:
+            print(f"Файл {file_name} - синхронизирован")
+        else:
+            print(f"Ошибка доступа к облаку: {response.json().get('message')}")
+
+    def info(self):
+        headers = self.get_headers()
+        headers['Content-Type'] = 'application/json'
+        headers['Accept'] = 'application/json'
+        url = "https://cloud-api.yandex.net/v1/disk/resources"
+        params = {"path": self._yandex_disk_path, "limit": int(10e6)}
+        response = requests.get(url, params=params, headers=headers)
+
+        yandex_files = {}
+        if response.status_code == 200:
+            files = response.json().get("_embedded", {}).get("items", [])
+            for file in files:
+                if file["type"] == "file":
+                    yandex_files[file["name"]] = file["modified"]
+        else:
+            print(f"Ошибка доступа к облаку: {response.json().get('message')}")
+
+        return yandex_files
