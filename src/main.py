@@ -50,7 +50,7 @@ def get_local_files(lc_path: str) -> dict:
 
 if __name__ == "__main__":
     yandex_disk_files = {}  # файлы на диске Yandex
-    local_volume_path = "/home/lenovo/Изображения"
+    local_volume_path = "/home/app/data"
 
     app_dir = os.path.dirname(os.path.abspath(__file__))
     local_path = os.path.join(app_dir, local_volume_path)

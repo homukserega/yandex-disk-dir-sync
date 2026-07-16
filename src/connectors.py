@@ -76,9 +76,7 @@ class YandexDiskConnector:
         mtime = int(os.path.getmtime(local_file_path))  # Unix timestamp
         if not mtime: # если нет времени изменения, оно равно времени создания
             mtime = int(os.path.getctime(local_file_path))
-        patch_params = {
-            "path": yandex_file_path,
-        }
+        patch_params = {"path": yandex_file_path}
         patch_data = {
             "custom_properties": {
                 "original_mtime": str(mtime)  # Сохраняем как строку
