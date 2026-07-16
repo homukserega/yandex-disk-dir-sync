@@ -29,7 +29,7 @@ def yandex_load(files_list: list, yad: YandexDiskConnector) -> None:
             yad.load_file(fl)
 
 
-def fnc_mtime_fix_files(local_f: dict, yandex_load_f: dict) -> list:
+def fnc_mtime_files_diff(local_f: dict, yandex_load_f: dict) -> list:
     mtime_fix_files = []
     for nm in local_f:
         if nm in yandex_load_f and local_f[nm] != yandex_load_f[nm]:
@@ -64,21 +64,18 @@ if __name__ == "__main__":
         local_files = get_local_files(local_volume_path) # файлы из локальной папки
 
         if yandex_disk_files != local_files:
-            print("Sync..")
             # получение списка файлов из YANDEX DISK
             yandex_disk_files: dict = yandex_disk.info_files() # файлы из локальной папки
 
             # Запись новых файлов
-            yandex_load_files: list = fnc_diff_files(local_files, yandex_disk_files)
-            yandex_load(yandex_load_files, yandex_disk)
+            upload_files: list = fnc_diff_files(local_files, yandex_disk_files)
+            yandex_load(upload_files, yandex_disk)
 
-            # Перезапись измененных файлов
-            yandex_reload_mtime_files: list = fnc_mtime_fix_files(local_files, yandex_disk_files)
-            if len(yandex_reload_mtime_files) > 0:
-                for file in yandex_reload_mtime_files:
-                    yandex_disk.load_file(file)
+            # Перезапись измененных файлов на YANDEX DISK
+            upload_mtime_files: list = fnc_mtime_files_diff(local_files, yandex_disk_files)
+            yandex_load(upload_mtime_files, yandex_disk)
 
-            # Удаление файлов
-            yandex_dell_files: list = fnc_diff_files(yandex_disk_files, local_files)
-            yandex_delete(yandex_dell_files, yandex_disk)
+            # Удаление файлов на YANDEX DISK
+            delete_files: list = fnc_diff_files(yandex_disk_files, local_files)
+            yandex_delete(delete_files, yandex_disk)
         time.sleep(10)
