@@ -4,5 +4,3 @@ services:
     volumes:
       # Монтируем каталог из хоста в /app/data внутри контейнера
       - ${HOST_PATH}:/app/data:ro
-#    environment:
-#      - PYTHONUNBUFFERED=1
