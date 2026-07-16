@@ -80,34 +80,52 @@ class YandexDiskConnector:
         # 1. Get href to upload
         yandex_file_path = f"{self._yandex_disk_path}/{file_name}"
         local_file_path = f"{self._local_path}/{file_name}"
+        logger.info(f"Загрузка файла '{file_name}' на Yandex Disk '{yandex_file_path}'")
+
         params = {
             'path': yandex_file_path,
             'overwrite': "true",  # можно также 'false' или не указывать
             # 'fields': 'href,method' # опционально – какие поля включить в ответ
         }
-        response_get = requests.get(f"{self.url}/upload", params=params, headers=self.get_headers())
-        data = response_get.json()
-        upload_url = data['href']
-
-        # 2. read local file to br uploaded
-        with open(local_file_path, "rb") as file:
-            requests.put(upload_url, data=file, headers=self.get_headers())
-
+        try:
+            response_get = requests.get(f"{self.url}/upload", params=params, headers=self.get_headers())
+            data = response_get.json()
+            upload_url = data.get('href')
+            if not upload_url:
+                raise ValueError("Не удалось получить ссылку 'href' для загрузки")
+        except (requests.RequestException, ValueError, KeyError) as e:
+            logger.error(f"Не удалось получить ссылку 'href' для загрузки файла '{file_name}': {e}")
+            raise
+        try:
+            # 2. read local file to br uploaded
+            with open(local_file_path, "rb") as file:
+                requests.put(upload_url, data=file, headers=self.get_headers())
+            logger.info(f"Файл '{file_name}' успешно загружен")
+        except FileNotFoundError as e:
+            logger.error(f"Локальный файл {file_name} не найден: '{local_file_path}'")
+            raise
+        except requests.RequestException as e:
+            logger.error(f"Ошибка загрузки файла '{file_name}': {e}")
+            raise
         # 3. Сохраняем исходное время модификации в custom_properties
-        mtime = int(os.path.getmtime(local_file_path))  # Unix timestamp
-        if not mtime: # если нет времени изменения, оно равно времени создания
-            mtime = int(os.path.getctime(local_file_path))
-        patch_params = {"path": yandex_file_path}
-        patch_data = {
-            "custom_properties": {
-                "original_mtime": str(mtime)  # Сохраняем как строку
+        try:
+            mtime = int(os.path.getmtime(local_file_path))  # Unix timestamp
+            if not mtime: # если нет времени изменения, оно равно времени создания
+                mtime = int(os.path.getctime(local_file_path))
+            patch_params = {"path": yandex_file_path}
+            patch_data = {
+                "custom_properties": {
+                    "original_mtime": str(mtime)  # Сохраняем как строку
+                }
             }
-        }
-        headers = self.get_headers()
-        headers['Content-Type'] = 'application/json'
-        requests.patch(
-            self.url, params=patch_params, headers=headers, json=patch_data)
-        print(f"file {file_name} has been uploaded!")
+            headers = self.get_headers()
+            headers['Content-Type'] = 'application/json'
+            requests.patch(
+                self.url, params=patch_params, headers=headers, json=patch_data)
+            logger.info(f"Custom property 'original_mtime' установлено для '{file_name}'")
+        except requests.RequestException as e:
+            logger.error(f"Не удалось добавить время изменения файла '{file_name}': {e}")
+            raise
 
     def info_files(self):
         headers = self.get_headers()
