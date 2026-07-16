@@ -135,14 +135,20 @@ class YandexDiskConnector:
         yandex_files = {}
 
         info_params = {"path": self._yandex_disk_path, "limit": int(10e6)}
-        info_response = requests.get(self.url, params=info_params, headers=headers)
+        logger.info("Получение информации из Yandex Disk")
+        try:
+            info_response = requests.get(self.url, params=info_params, headers=headers)
 
-        files = info_response.json().get("_embedded", {}).get("items", [])
-        for file in files:
-            if file["type"] == "file":
-                yandex_files[file["name"]] = file.get("custom_properties", {}).get("original_mtime")
+            files = info_response.json().get("_embedded", {}).get("items", [])
+            for file in files:
+                if file["type"] == "file":
+                    yandex_files[file["name"]] = file.get("custom_properties", {}).get("original_mtime")
 
-        return yandex_files
+            logger.info("Информация из Yandex Disk получена")
+            return yandex_files
+        except requests.RequestException as e:
+            logger.error(f"Ошибка получения фалов из Yandex Disk {e}")
+            raise
 
     def delete_file(self, file_name: str):
         headers = self.get_headers()
@@ -152,5 +158,10 @@ class YandexDiskConnector:
             'permanently': "true",
             # 'fields': 'href,method' # опционально – какие поля включить в ответ
         }
-        requests.delete(self.url, params=params, headers=headers)
-        print(f"file {file_name} has been deleted!")
+        logger.info(f"Удаление файла '{file_name}' из Yandex Disk")
+        try:
+            requests.delete(self.url, params=params, headers=headers)
+            logger.info(f"Файл '{file_name}' успешно удален из Yandex Disk")
+        except requests.RequestException as e:
+            logger.error(f"Ошибка удаления файла '{file_name}': {e}")
+            raise
