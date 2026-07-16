@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from time import sleep
+import time
 
 from connectors import YandexDiskConnector
 
@@ -50,14 +50,10 @@ def get_local_files(lc_path: str) -> dict:
 
 if __name__ == "__main__":
     yandex_disk_files = {}  # файлы на диске Yandex
-    # local_files = {}  # файлы из локальной папки
-
-    # user_input_path = input("Please enter the path to your Local Folder:"
-    #                         "\nExample: /home/user/Загрузки\n > ")
-    user_path = "/home/lenovo/Изображения"
+    local_volume_path = "/home/lenovo/Изображения"
 
     app_dir = os.path.dirname(os.path.abspath(__file__))
-    local_path = os.path.join(app_dir, user_path)
+    local_path = os.path.join(app_dir, local_volume_path)
 
     yandex_disk = YandexDiskConnector()
     yandex_disk.token = os.getenv("YANDEX_TOKEN")
@@ -65,12 +61,12 @@ if __name__ == "__main__":
     yandex_disk.local_path = local_path
 
     while True:
-        local_files = get_local_files(local_path) # файлы из локальной папки
+        local_files = get_local_files(local_volume_path) # файлы из локальной папки
 
         if yandex_disk_files != local_files:
             print("Sync..")
             # получение списка файлов из YANDEX DISK
-            yandex_disk_files: dict = yandex_disk.info_files()
+            yandex_disk_files: dict = yandex_disk.info_files() # файлы из локальной папки
 
             # Запись новых файлов
             yandex_load_files: list = fnc_diff_files(local_files, yandex_disk_files)
@@ -85,8 +81,4 @@ if __name__ == "__main__":
             # Удаление файлов
             yandex_dell_files: list = fnc_diff_files(yandex_disk_files, local_files)
             yandex_delete(yandex_dell_files, yandex_disk)
-            sleep(10)
-        else:
-            print("All files the same!!!")
-            print("Sleeping..10")
-            sleep(10)
+        time.sleep(10)
