@@ -2,6 +2,30 @@ import os
 
 import requests
 
+from loguru import logger
+
+import sys
+
+# Удаляем стандартный sink
+logger.remove(0)
+
+# Добавляем вывод в stdout (через sys.stdout)
+logger.add(
+    sys.stdout,
+    format="<green>{time}</green> | <level>{level}</level> | <cyan>{message}</cyan>",
+    colorize=True,
+    level="DEBUG"
+)
+
+# Добавляем файловый sink с ротацией
+logger.add(
+    "logs/Service-files-sync.log",
+    rotation="100 MB",
+    retention="30 days",
+    format="{time} | {level} | {message}",
+    level="INFO"
+)
+
 
 class YandexDiskConnector:
     def __init__(self):
