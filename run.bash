@@ -20,10 +20,8 @@ read -r -p "Enter - обычный; d - фоновый"  COMPOSE_MODE
 
 if [ "$COMPOSE_MODE" == "d" ]; then
     docker compose up --build -d
+    echo "Для остановки и удаления сервиса запустите: './stop.bash'"
 else
     docker compose up --build
-
-    echo "Для остановки и удаления сервиса запустите: './stop.bash'"
+    docker compose down
 fi
-
-docker compose down

@@ -49,7 +49,6 @@ def get_local_files(local_path: str) -> dict:
 
 
 if __name__ == "__main__":
-    yandex_disk_files = {}  # файлы на диске Yandex
     local_volume_path = "data"
 
     yandex_disk = YandexDiskConnector()
@@ -57,20 +56,16 @@ if __name__ == "__main__":
     yandex_disk.yandex_disk_path = os.getenv("YANDEX_DISK_PATH")
     yandex_disk.local_path = local_volume_path
 
+    # получение списка файлов из YANDEX DISK
+    yandex_disk_files: dict = yandex_disk.info_files()
+
     while True:
-        local_files = get_local_files(local_volume_path) # файлы из локальной папки
-
-        if len(local_files) > 0:
-            # получение списка файлов из YANDEX DISK
-            yandex_disk_files: dict = yandex_disk.info_files()  # файлы из локальной папки
-
-            # Удаление файлов на YANDEX DISK
-            delete_files: list = fnc_diff_files(yandex_disk_files, local_files)
-            yandex_delete(delete_files, yandex_disk)
+        # получение списка файлов из локальной папки
+        local_files = get_local_files(local_volume_path)
 
         if yandex_disk_files != local_files:
             # получение списка файлов из YANDEX DISK
-            yandex_disk_files: dict = yandex_disk.info_files() # файлы из локальной папки
+            yandex_disk_files: dict = yandex_disk.info_files()
 
             # Удаление файлов на YANDEX DISK
             delete_files: list = fnc_diff_files(yandex_disk_files, local_files)
