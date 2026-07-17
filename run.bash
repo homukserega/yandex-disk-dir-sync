@@ -15,4 +15,15 @@ fi
 export HOST_PATH
 
 # Запускаем контейнеры
-docker compose up --build -d
+echo -e "\nВведите режим запуска:"
+read -r -p "Enter - обычный; d - фоновый"  COMPOSE_MODE
+
+if [ "$COMPOSE_MODE" == "d" ]; then
+    docker compose up --build -d
+else
+    docker compose up --build
+
+    echo "Для остановки и удаления сервиса запустите: './stop.bash'"
+fi
+
+docker compose down
