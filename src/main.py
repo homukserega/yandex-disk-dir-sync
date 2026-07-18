@@ -25,10 +25,10 @@ def yandex_delete(files_list: list, ya_disk: YandexDiskConnector , action: str) 
             try:
                 ya_disk.delete_file(item)
                 app_custom_logger.info(f"Файл '{item}' успешно {action}!")
-            except FileSyncError as excl:
-                error_desc = map_error_type(excl.original_exception)
+            except FileSyncError as ex:
+                error_desc = map_error_type(ex.original_exception)
                 app_custom_logger.error(
-                    f"Файл '{excl.filename}' не был {action}. {error_desc}: {excl.original_exception}"
+                    f"Файл '{ex.filename}' не был {action}. {error_desc}: {ex.original_exception}"
                 )
 
 def yandex_upload(files_list: list, yad: YandexDiskConnector, action: str) -> None:
@@ -37,10 +37,10 @@ def yandex_upload(files_list: list, yad: YandexDiskConnector, action: str) -> No
             try:
                 yad.upload_file(item)
                 app_custom_logger.info(f"Файл '{item}' успешно {action}!")
-            except FileSyncError as excl:
-                error_desc = map_error_type(excl.original_exception)
+            except FileSyncError as exc:
+                error_desc = map_error_type(exc.original_exception)
                 app_custom_logger.error(
-                    f"Файл '{excl.filename}' не был {action}. {error_desc}: {excl.original_exception}"
+                    f"Файл '{exc.filename}' не был {action}. {error_desc}: {exc.original_exception}"
                 )
 
 

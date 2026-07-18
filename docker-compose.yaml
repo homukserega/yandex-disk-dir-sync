@@ -1,9 +1,11 @@
 services:
-  synchronizer:
+  app:
     build: .
     restart: unless-stopped
-    user: "1000:1000"
     volumes:
       # Монтируем каталог из хоста в /app/data внутри контейнера
       - "${HOST_PATH:-./data}:/app/data:ro"
-      - ./logs:/app/logs:rw
+      - logs_volume:/app/logs:rw
+
+volumes:
+  logs_volume:
