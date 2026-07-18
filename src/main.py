@@ -1,61 +1,18 @@
 from dotenv import load_dotenv
 
-from loguru import logger
-
 import os
 
 import requests
-
-import sys
 
 import time
 
 from connectors import YandexDiskConnector
 
+from custom_loguru import app_custom_logger
+
+from exceptions import FileSyncError, map_error_type
+
 load_dotenv()
-
-# Удаляем стандартный sink
-logger.remove(0)
-
-# Добавляем вывод в stdout (через sys.stdout)
-logger.add(
-    sys.stdout,
-    format="<green>{time}</green> | <level>{level}</level> | <cyan>{message}</cyan>",
-    colorize=True,
-    level="DEBUG"
-)
-
-# Добавляем файловый sink с ротацией
-logger.add(
-    "logs/Service-files-sync.log",
-    rotation="100 MB",
-    retention="30 days",
-    format="{time} | {level} | {message}",
-    level="INFO"
-)
-
-
-class FileSyncError(Exception):
-    """Исключение, содержащее имя файла и исходную ошибку."""
-    def __init__(self, filename: str, original_exception: Exception):
-        self.filename = filename
-        self.original_exception = original_exception
-        super().__init__(f"Синхронизация файла '{filename}' не удалась: {original_exception}")
-
-
-def map_error_type(exception: Exception) -> str:
-    """Возвращает читаемое описание типа ошибки."""
-    if isinstance(exception, requests.RequestException):
-        return "Ошибка соединения"
-    if isinstance(exception, FileNotFoundError):
-        return "Файл не найден"
-    if isinstance(exception, PermissionError):
-        return "Недостаточно прав для чтения файла"
-    if isinstance(exception, OSError):
-        return "Ошибка файловой системы"
-    if isinstance(exception, ValueError):
-        return "Ошибка получения ссылки для загрузки"
-    return f"Неизвестная ошибка ({type(exception).__name__})"
 
 
 def fnc_diff_files(local_f: dict, yandex_load_f: dict) -> list:
@@ -67,11 +24,11 @@ def yandex_delete(files_list: list, ya_disk: YandexDiskConnector , action: str) 
         for item in files_list:
             try:
                 ya_disk.delete_file(item)
-                logger.info(f"Файл '{item}' успешно {action}!")
-            except FileSyncError as e:
-                error_desc = map_error_type(e.original_exception)
-                logger.error(
-                    f"Файл '{e.filename}' не был {action}. {error_desc}: {e.original_exception}"
+                app_custom_logger.info(f"Файл '{item}' успешно {action}!")
+            except FileSyncError as excl:
+                error_desc = map_error_type(excl.original_exception)
+                app_custom_logger.error(
+                    f"Файл '{excl.filename}' не был {action}. {error_desc}: {excl.original_exception}"
                 )
 
 def yandex_upload(files_list: list, yad: YandexDiskConnector, action: str) -> None:
@@ -79,11 +36,11 @@ def yandex_upload(files_list: list, yad: YandexDiskConnector, action: str) -> No
         for item in files_list:
             try:
                 yad.upload_file(item)
-                logger.info(f"Файл '{item}' успешно {action}!")
-            except FileSyncError as e:
-                error_desc = map_error_type(e.original_exception)
-                logger.error(
-                    f"Файл '{e.filename}' не был {action}. {error_desc}: {e.original_exception}"
+                app_custom_logger.info(f"Файл '{item}' успешно {action}!")
+            except FileSyncError as excl:
+                error_desc = map_error_type(excl.original_exception)
+                app_custom_logger.error(
+                    f"Файл '{excl.filename}' не был {action}. {error_desc}: {excl.original_exception}"
                 )
 
 
@@ -134,6 +91,12 @@ if __name__ == "__main__":
             upload_mtime_files: list = fnc_mtime_files_diff(local_files, yandex_disk_files)
             yandex_upload(upload_mtime_files, yandex_disk, action="перезаписан")
 
-            # получение списка файлов из YANDEX DISK
-            yandex_disk_files: dict = yandex_disk.info_files()
+            try:
+                # получение списка файлов из YANDEX DISK
+                yandex_disk_files: dict = yandex_disk.info_files()
+                app_custom_logger.info(f"Данные из папки '{yandex_disk.yandex_disk_path}'"
+                            f" Yandex Disk, успешно получены")
+            except requests.RequestException as e:
+                app_custom_logger.error(f"Ошибка получения данных из папки '{yandex_disk.yandex_disk_path}'"
+                             f" Yandex Disk: {e}")
         time.sleep(10)

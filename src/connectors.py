@@ -53,39 +53,36 @@ class YandexDiskConnector:
         :param file_name: test_file_to_sync.txt
         :return: None
         """
-        try:
-            # 1. Get href to upload
-            yandex_file_path = f"{self._yandex_disk_path}/{file_name}"
-            local_file_path = f"{self._local_path}/{file_name}"
+        # 1. Get href to upload
+        yandex_file_path = f"{self._yandex_disk_path}/{file_name}"
+        local_file_path = f"{self._local_path}/{file_name}"
 
-            params = {
-                'path': yandex_file_path,
-                'overwrite': "true",  # можно также 'false' или не указывать
-                # 'fields': 'href,method' # опционально – какие поля включить в ответ
-            }
-            response_get = requests.get(f"{self.url}/upload", params=params, headers=self.get_headers())
-            data = response_get.json()
-            upload_url = data.get('href')
-            # 2. read local file to br uploaded
-            with open(local_file_path, "rb") as file:
-                requests.put(upload_url, data=file, headers=self.get_headers())
+        params = {
+            'path': yandex_file_path,
+            'overwrite': "true",  # можно также 'false' или не указывать
+            # 'fields': 'href,method' # опционально – какие поля включить в ответ
+        }
+        response_get = requests.get(f"{self.url}/upload", params=params, headers=self.get_headers())
+        data = response_get.json()
+        upload_url = data.get('href')
+        # 2. read local file to br uploaded
+        with open(local_file_path, "rb") as file:
+            requests.put(upload_url, data=file, headers=self.get_headers())
 
-            # 3. Сохраняем исходное время модификации в custom_properties
-            mtime = int(os.path.getmtime(local_file_path))  # Unix timestamp
-            if not mtime: # если нет времени изменения, оно равно времени создания
-                mtime = int(os.path.getctime(local_file_path))
-            patch_params = {"path": yandex_file_path}
-            patch_data = {
-                "custom_properties": {
-                    "original_mtime": str(mtime)  # Сохраняем как строку
-                }
+        # 3. Сохраняем исходное время модификации в custom_properties
+        mtime = int(os.path.getmtime(local_file_path))  # Unix timestamp
+        if not mtime: # если нет времени изменения, оно равно времени создания
+            mtime = int(os.path.getctime(local_file_path))
+        patch_params = {"path": yandex_file_path}
+        patch_data = {
+            "custom_properties": {
+                "original_mtime": str(mtime)  # Сохраняем как строку
             }
-            headers = self.get_headers()
-            headers['Content-Type'] = 'application/json'
-            requests.patch(
-                self.url, params=patch_params, headers=headers, json=patch_data)
-        except Exception:
-            raise
+        }
+        headers = self.get_headers()
+        headers['Content-Type'] = 'application/json'
+        requests.patch(
+            self.url, params=patch_params, headers=headers, json=patch_data)
 
     def info_files(self) -> dict:
         """
@@ -97,32 +94,27 @@ class YandexDiskConnector:
         headers['Accept'] = 'application/json'
 
         yandex_files = {}
-        try:
-            info_params = {"path": self._yandex_disk_path, "limit": int(10e6)}
-            info_response = requests.get(self.url, params=info_params, headers=headers)
+        info_params = {"path": self._yandex_disk_path, "limit": int(10e6)}
+        info_response = requests.get(self.url, params=info_params, headers=headers)
 
-            files = info_response.json().get("_embedded", {}).get("items", [])
-            for file in files:
-                if file["type"] == "file":
-                    yandex_files[file["name"]] = file.get("custom_properties", {}).get("original_mtime")
+        files = info_response.json().get("_embedded", {}).get("items", [])
+        for file in files:
+            if file["type"] == "file":
+                yandex_files[file["name"]] = file.get("custom_properties", {}).get("original_mtime")
 
-            return yandex_files
-        except Exception:
-            raise
+        return yandex_files
 
     def delete_file(self, file_name: str) -> None:
         """
         :param file_name: name of file: str
         :return: None
         """
-        try:
-            headers = self.get_headers()
-            params = {
-                'path': f"{self.yandex_disk_path}/{file_name}",
-                'force_async': "false",  # можно также 'false' или не указывать
-                'permanently': "true",
-                # 'fields': 'href,method' # опционально – какие поля включить в ответ
-            }
-            requests.delete(self.url, params=params, headers=headers)
-        except Exception:
-            raise
+
+        headers = self.get_headers()
+        params = {
+            'path': f"{self.yandex_disk_path}/{file_name}",
+            'force_async': "false",  # можно также 'false' или не указывать
+            'permanently': "true",
+            # 'fields': 'href,method' # опционально – какие поля включить в ответ
+        }
+        requests.delete(self.url, params=params, headers=headers)
