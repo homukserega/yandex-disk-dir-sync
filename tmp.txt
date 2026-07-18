@@ -5,7 +5,7 @@ import os
 import requests
 
 
-class YandexDiskConnector:
+class YandxDisk:
     def __init__(self):
         self.token = None
         self.yandex_disk_path = None
@@ -111,7 +111,7 @@ import sys
 
 import time
 
-from connectors import YandexDiskConnector
+from connectors import YandxDisk
 
 load_dotenv()
 
@@ -155,7 +155,7 @@ def get_local_files(local_path: str) -> dict:
     return loc_files
 
 
-def yandex_upload(files_list: list, yad: YandexDiskConnector) -> None:
+def yandex_upload(files_list: list, yad: YandxDisk) -> None:
     if len(files_list) > 0:
         for item in files_list:
             yad.upload_file(item)
@@ -164,7 +164,7 @@ def yandex_upload(files_list: list, yad: YandexDiskConnector) -> None:
 if __name__ == "__main__":
     local_volume_path = "data"
 
-    yandex_disk = YandexDiskConnector()
+    yandex_disk = YandxDisk()
     yandex_disk.token = os.getenv("YANDEX_TOKEN")
     yandex_disk.yandex_disk_path = os.getenv("YANDEX_DISK_PATH")
     yandex_disk.local_path = local_volume_path
@@ -185,3 +185,20 @@ if __name__ == "__main__":
             upload_mtime_files: list = fnc_mtime_files_diff(local_files, yandex_disk_files)
             yandex_upload(upload_mtime_files, yandex_disk)
         time.sleep(10)
+        
+Как пробросить исключения из YandexDisk чтобы было обработано только последнее исключение в main.py.
+Нужно сделать так, чтобы при ошибке соединения срабатывало исключение и logger выводил
+сообщение с названием файла и собственной ошибкой, а программа продолжала работать.
+Класс YandxDisk изменять нельзя, проброшенное исключение должно выводится только в main.py
+Например, при ошибках:
+loguru выводит:
+2026-07-17T21:44:02.146978+0000 | INFO | Файл 'название файла' не был загружен. Ошибка соединения.
+2026-07-17T21:44:02.146978+0000 | INFO | Файл 'название файла' не был перезаписан. Ошибка соединения.
+2026-07-17T21:44:02.146978+0000 | INFO | Файл 'название файла' не был загружен. Ошибка чтения файла не достаточно прав.
+2026-07-17T21:44:02.146978+0000 | INFO | Файл 'название файла' не был загружен. Ошибка чтения файла не достаточно прав.
+
+Например, в успешном случае:
+loguru выводит:
+2026-07-17T21:44:02.146978+0000 | INFO | Файл 'название файла' успешно загружен.
+2026-07-17T21:44:02.146978+0000 | INFO | Файл 'название файла' успешно перезаписан.
+

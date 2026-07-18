@@ -1,8 +1,10 @@
-import os
-
 from dotenv import load_dotenv
 
 from loguru import logger
+
+import os
+
+import requests
 
 import sys
 
@@ -33,24 +35,56 @@ logger.add(
 )
 
 
-def fnc_diff_files(dict1, dict2) -> list:
-    diff_list = []
-    for item in dict1:
-        if item not in dict2:
-            diff_list.append(item)
-    return diff_list
+class FileSyncError(Exception):
+    """Исключение, содержащее имя файла и исходную ошибку."""
+    def __init__(self, filename: str, original_exception: Exception):
+        self.filename = filename
+        self.original_exception = original_exception
+        super().__init__(f"Синхронизация файла '{filename}' не удалась: {original_exception}")
 
 
-def yandex_delete(files_list: list, ya_disk: YandexDiskConnector) -> None:
+def map_error_type(exception: Exception) -> str:
+    """Возвращает читаемое описание типа ошибки."""
+    if isinstance(exception, requests.RequestException):
+        return "Ошибка соединения"
+    if isinstance(exception, FileNotFoundError):
+        return "Файл не найден"
+    if isinstance(exception, PermissionError):
+        return "Недостаточно прав для чтения файла"
+    if isinstance(exception, OSError):
+        return "Ошибка файловой системы"
+    if isinstance(exception, ValueError):
+        return "Ошибка получения ссылки для загрузки"
+    return f"Неизвестная ошибка ({type(exception).__name__})"
+
+
+def fnc_diff_files(local_f: dict, yandex_load_f: dict) -> list:
+    return [f for f in local_f if f not in yandex_load_f]
+
+
+def yandex_delete(files_list: list, ya_disk: YandexDiskConnector , action: str) -> None:
     if len(files_list) > 0:
         for item in files_list:
-            ya_disk.delete_file(item)
+            try:
+                ya_disk.delete_file(item)
+                logger.info(f"Файл '{item}' успешно {action}!")
+            except FileSyncError as e:
+                error_desc = map_error_type(e.original_exception)
+                logger.error(
+                    f"Файл '{e.filename}' не был {action}. {error_desc}: {e.original_exception}"
+                )
 
-
-def yandex_upload(files_list: list, yad: YandexDiskConnector) -> None:
+def yandex_upload(files_list: list, yad: YandexDiskConnector, action: str) -> None:
     if len(files_list) > 0:
         for item in files_list:
-            yad.upload_file(item)
+            try:
+                yad.upload_file(item)
+                logger.info(f"Файл '{item}' успешно {action}!")
+            except FileSyncError as e:
+                error_desc = map_error_type(e.original_exception)
+                logger.error(
+                    f"Файл '{e.filename}' не был {action}. {error_desc}: {e.original_exception}"
+                )
 
 
 def fnc_mtime_files_diff(local_f: dict, yandex_load_f: dict) -> list:
@@ -90,15 +124,15 @@ if __name__ == "__main__":
         if yandex_disk_files != local_files:
             # Удаление файлов на YANDEX DISK
             delete_files: list = fnc_diff_files(yandex_disk_files, local_files)
-            yandex_delete(delete_files, yandex_disk)
+            yandex_delete(delete_files, yandex_disk, action="удален")
 
             # Запись новых файлов на YANDEX DISK
             upload_files: list = fnc_diff_files(local_files, yandex_disk_files)
-            yandex_upload(upload_files, yandex_disk)
+            yandex_upload(upload_files, yandex_disk, action="загружен")
 
             # Перезапись измененных файлов на YANDEX DISK
             upload_mtime_files: list = fnc_mtime_files_diff(local_files, yandex_disk_files)
-            yandex_upload(upload_mtime_files, yandex_disk)
+            yandex_upload(upload_mtime_files, yandex_disk, action="перезаписан")
 
             # получение списка файлов из YANDEX DISK
             yandex_disk_files: dict = yandex_disk.info_files()
