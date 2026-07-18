@@ -1,3 +1,5 @@
+controllers.py:
+
 import os
 
 import requests
@@ -96,35 +98,90 @@ class YandexDiskConnector:
         except requests.RequestException as e:
             raise
 
-    def info_files(self):
-        headers = self.get_headers()
-        headers['Content-Type'] = 'application/json'
-        headers['Accept'] = 'application/json'
 
-        yandex_files = {}
+main.py:
 
-        info_params = {"path": self._yandex_disk_path, "limit": int(10e6)}
-        try:
-            info_response = requests.get(self.url, params=info_params, headers=headers)
+import os
 
-            files = info_response.json().get("_embedded", {}).get("items", [])
-            for file in files:
-                if file["type"] == "file":
-                    yandex_files[file["name"]] = file.get("custom_properties", {}).get("original_mtime")
+from dotenv import load_dotenv
 
-            return yandex_files
-        except requests.RequestException as e:
-            raise
+from loguru import logger
 
-    def delete_file(self, file_name: str):
-        headers = self.get_headers()
-        params = {
-            'path': f"{self.yandex_disk_path}/{file_name}",
-            'force_async': "false",  # можно также 'false' или не указывать
-            'permanently': "true",
-            # 'fields': 'href,method' # опционально – какие поля включить в ответ
-        }
-        try:
-            requests.delete(self.url, params=params, headers=headers)
-        except requests.RequestException as e:
-            raise
+import sys
+
+import time
+
+from connectors import YandexDiskConnector
+
+load_dotenv()
+
+# Удаляем стандартный sink
+logger.remove(0)
+
+# Добавляем вывод в stdout (через sys.stdout)
+logger.add(
+    sys.stdout,
+    format="<green>{time}</green> | <level>{level}</level> | <cyan>{message}</cyan>",
+    colorize=True,
+    level="DEBUG"
+)
+
+# Добавляем файловый sink с ротацией
+logger.add(
+    "logs/Service-files-sync.log",
+    rotation="100 MB",
+    retention="30 days",
+    format="{time} | {level} | {message}",
+    level="INFO"
+)
+
+def fnc_mtime_files_diff(local_f: dict, yandex_load_f: dict) -> list:
+    mtime_fix_files = []
+    for f_name in local_f:
+        if f_name in yandex_load_f and local_f[f_name] != yandex_load_f[f_name]:
+            mtime_fix_files.append(f_name)
+    return mtime_fix_files
+
+
+
+def get_local_files(local_path: str) -> dict:
+    loc_files = {}
+    for name in os.listdir(local_path):
+        # Полный путь к файлу или папки
+        full_path = os.path.join(local_path, name)
+        # Проверяем, что это файл (а не папка)
+        if os.path.isfile(full_path):
+            loc_files[name] = str(int(os.path.getmtime(full_path)))
+    return loc_files
+
+
+def yandex_upload(files_list: list, yad: YandexDiskConnector) -> None:
+    if len(files_list) > 0:
+        for item in files_list:
+            yad.upload_file(item)
+
+
+if __name__ == "__main__":
+    local_volume_path = "data"
+
+    yandex_disk = YandexDiskConnector()
+    yandex_disk.token = os.getenv("YANDEX_TOKEN")
+    yandex_disk.yandex_disk_path = os.getenv("YANDEX_DISK_PATH")
+    yandex_disk.local_path = local_volume_path
+
+    # получение списка файлов из YANDEX DISK
+    yandex_disk_files: dict = yandex_disk.info_files()
+
+    while True:
+        # получение списка файлов из локальной папки
+        local_files = get_local_files(local_volume_path)
+
+        if yandex_disk_files != local_files:
+            # Запись новых файлов на YANDEX DISK
+            upload_files: list = fnc_diff_files(local_files, yandex_disk_files)
+            yandex_upload(upload_files, yandex_disk)
+
+            # Перезапись измененных файлов на YANDEX DISK
+            upload_mtime_files: list = fnc_mtime_files_diff(local_files, yandex_disk_files)
+            yandex_upload(upload_mtime_files, yandex_disk)
+        time.sleep(10)

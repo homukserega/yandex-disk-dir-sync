@@ -2,11 +2,35 @@ import os
 
 from dotenv import load_dotenv
 
-load_dotenv()
+from loguru import logger
+
+import sys
 
 import time
 
 from connectors import YandexDiskConnector
+
+load_dotenv()
+
+# Удаляем стандартный sink
+logger.remove(0)
+
+# Добавляем вывод в stdout (через sys.stdout)
+logger.add(
+    sys.stdout,
+    format="<green>{time}</green> | <level>{level}</level> | <cyan>{message}</cyan>",
+    colorize=True,
+    level="DEBUG"
+)
+
+# Добавляем файловый sink с ротацией
+logger.add(
+    "logs/Service-files-sync.log",
+    rotation="100 MB",
+    retention="30 days",
+    format="{time} | {level} | {message}",
+    level="INFO"
+)
 
 
 def fnc_diff_files(dict1, dict2) -> list:
