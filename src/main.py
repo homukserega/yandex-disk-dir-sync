@@ -71,32 +71,35 @@ if __name__ == "__main__":
     yandex_disk.yandex_disk_path = os.getenv("YANDEX_DISK_PATH")
     yandex_disk.local_path = local_volume_path
 
-    # получение списка файлов из YANDEX DISK
-    yandex_disk_files: dict = yandex_disk.info_files()
+    try:
+        # получение списка файлов из YANDEX DISK
+        yandex_disk_files = yandex_disk.info_files()
 
-    while True:
-        # получение списка файлов из локальной папки
-        local_files = get_local_files(local_volume_path)
+        while True:
+            # получение списка файлов из локальной папки
+            local_files = get_local_files(local_volume_path)
 
-        if yandex_disk_files != local_files:
-            # Удаление файлов на YANDEX DISK
-            delete_files: list = fnc_diff_files(yandex_disk_files, local_files)
-            yandex_delete(delete_files, yandex_disk, action="удален")
+            if yandex_disk_files != local_files:
+                # Удаление файлов на YANDEX DISK
+                delete_files: list = fnc_diff_files(yandex_disk_files, local_files)
+                yandex_delete(delete_files, yandex_disk, action="удален")
 
-            # Запись новых файлов на YANDEX DISK
-            upload_files: list = fnc_diff_files(local_files, yandex_disk_files)
-            yandex_upload(upload_files, yandex_disk, action="загружен")
+                # Запись новых файлов на YANDEX DISK
+                upload_files: list = fnc_diff_files(local_files, yandex_disk_files)
+                yandex_upload(upload_files, yandex_disk, action="загружен")
 
-            # Перезапись измененных файлов на YANDEX DISK
-            upload_mtime_files: list = fnc_mtime_files_diff(local_files, yandex_disk_files)
-            yandex_upload(upload_mtime_files, yandex_disk, action="перезаписан")
+                # Перезапись измененных файлов на YANDEX DISK
+                upload_mtime_files: list = fnc_mtime_files_diff(local_files, yandex_disk_files)
+                yandex_upload(upload_mtime_files, yandex_disk, action="перезаписан")
 
-            try:
-                # получение списка файлов из YANDEX DISK
-                yandex_disk_files: dict = yandex_disk.info_files()
-                app_custom_logger.info(f"Данные из папки '{yandex_disk.yandex_disk_path}'"
-                            f" Yandex Disk, успешно получены")
-            except requests.RequestException as e:
-                app_custom_logger.error(f"Ошибка получения данных из папки '{yandex_disk.yandex_disk_path}'"
-                             f" Yandex Disk: {e}")
-        time.sleep(10)
+                try:
+                    # получение списка файлов из YANDEX DISK
+                    yandex_disk_files = yandex_disk.info_files()
+                except requests.RequestException as excl:
+                    app_custom_logger.error(f"Ошибка получения данных из папки '{yandex_disk.local_path}'"
+                                            f" Yandex Disk: {excl}")
+
+            time.sleep(10)
+    except requests.RequestException as excl:
+        app_custom_logger.error(f"Ошибка получения данных из папки '{yandex_disk.local_path}'"
+                                f" Yandex Disk: {excl}")
