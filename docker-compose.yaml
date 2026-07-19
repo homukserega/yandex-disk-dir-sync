@@ -1,5 +1,6 @@
 services:
   app:
+    container_name: sync-yandex-disk-dir
     build: .
     restart: unless-stopped
     volumes:

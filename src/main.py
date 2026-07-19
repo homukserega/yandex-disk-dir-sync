@@ -1,5 +1,9 @@
 from dotenv import load_dotenv
 
+from exceptions import FileSyncError, map_error_type
+
+from loguru import logger
+
 import os
 
 import requests
@@ -9,8 +13,6 @@ import time
 from connectors import YandexDiskConnector
 
 from custom_loguru import app_custom_logger
-
-from exceptions import FileSyncError, map_error_type
 
 load_dotenv()
 
