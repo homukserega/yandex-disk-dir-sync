@@ -13,7 +13,6 @@ class FileSyncError(Exception):
 
 def map_error_type(exception: Exception) -> str:
     """Возвращает читаемое описание типа ошибки."""
-    print(exception.args[0])
     if isinstance(exception, requests.RequestException):
         return "Ошибка сетевого соединения."
     if isinstance(exception, FileNotFoundError):
