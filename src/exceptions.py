@@ -24,3 +24,7 @@ def map_error_type(exception: Exception) -> str:
     if isinstance(exception, ValueError):
         return "Ошибка получения ссылки для загрузки."
     return f"Неизвестная ошибка ({type(exception).__name__})"
+
+
+class UnauthorizedError(BaseException):
+    pass

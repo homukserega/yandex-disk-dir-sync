@@ -2,7 +2,7 @@ import os
 
 import requests
 
-from exceptions import FileSyncError
+from exceptions import FileSyncError, UnauthorizedError
 
 
 class YandexDiskConnector:
@@ -68,6 +68,10 @@ class YandexDiskConnector:
             response_get = requests.get(f"{self.url}/upload", params=params, headers=self.get_headers())
             data = response_get.json()
             upload_url = data.get('href')
+            if not upload_url:
+                raise FileSyncError(
+                    file_name,
+                    Exception("Не удалось получить ссылку для загрузки (возможно, неверный токен)"))
             # 2. read local file to br uploaded
             with open(local_file_path, "rb") as file:
                 requests.put(upload_url, data=file, headers=self.get_headers())
@@ -108,6 +112,17 @@ class YandexDiskConnector:
             yandex_files = {}
             info_params = {"path": self._yandex_disk_path, "limit": int(10e6)}
             info_response = requests.get(self.url, params=info_params, headers=headers)
+            print(info_response.json(), info_response.status_code)
+
+            # Проверяем статус ответа
+            if info_response.status_code == 401:
+                raise UnauthorizedError("Ошибка авторизации. Проверьте ваш ТОКЕН.")
+            if info_response.status_code == 404:
+                raise FileNotFoundError(f"Каталог '{self._yandex_disk_path}' не найден на Яндекс.Диске.")
+            if info_response.status_code != 200:
+                raise requests.RequestException(
+                    f"Ошибка API Яндекс.Диска: {info_response.status_code} - {info_response.text}"
+                )
 
             files = info_response.json().get("_embedded", {}).get("items", [])
             for file in files:
@@ -115,10 +130,8 @@ class YandexDiskConnector:
                     yandex_files[file["name"]] = file.get("custom_properties", {}).get("original_mtime")
 
             return yandex_files
-        except (
-            requests.RequestException,
-        ) as exception:
-            raise exception
+        except requests.RequestException as e:
+            raise
 
     def delete_file(self, file_name: str) -> None:
         """
