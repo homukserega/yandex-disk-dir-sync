@@ -112,7 +112,6 @@ class YandexDiskConnector:
             yandex_files = {}
             info_params = {"path": self._yandex_disk_path, "limit": int(10e6)}
             info_response = requests.get(self.url, params=info_params, headers=headers)
-            print(info_response.json(), info_response.status_code)
 
             # Проверяем статус ответа
             if info_response.status_code == 401:
