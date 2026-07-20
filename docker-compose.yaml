@@ -3,6 +3,8 @@ services:
     container_name: sync-yandex-disk-dir
     build: .
     restart: unless-stopped
+    networks:
+      - sync-yandex-disk-dir
     volumes:
       # Монтируем каталог из хоста в /app/data внутри контейнера
       - "${HOST_PATH:-./data}:/app/data:ro"
@@ -10,3 +12,7 @@ services:
 
 volumes:
   logs_volume:
+
+networks:
+  sync-yandex-disk-dir:
+    driver: bridge
