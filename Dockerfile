@@ -13,9 +13,14 @@ RUN addgroup -g ${GID} appuser && \
 WORKDIR /app
 RUN chown appuser:appuser /app
 
-COPY --chown=appuser:appuser requirements.txt ./
+# COPY --chown=appuser:appuser requirements.txt ./
+# Для исключения падения сервиса ставятся только строго определеннные зависимости
+# а не зависимости из requirements.txt
+# Если нужно - можно поменять установку из requirements в контейнере с --no-deps \...
+# на -r ewquirements.txt
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir --no-deps \
+    certifi charset-normalizer idna python-dotenv requests urllib3 loguru
 
 COPY --chown=appuser:appuser src/ ./
 COPY --chown=appuser:appuser .env ./

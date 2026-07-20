@@ -143,6 +143,7 @@ text
     Docker / Docker Compose – контейнеризация
 
 #### Проверка кода линтером, если нужно
+
 > ruff check ./src --select I --fix && ruff check ./src/ --fix && ruff format ./src
 
  конфиг файл <b>ruff:</b> ruff.toml
