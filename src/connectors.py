@@ -13,9 +13,7 @@ class YandexDiskConnector:
         self.url = "https://cloud-api.yandex.net/v1/disk/resources"
 
     def get_headers(self):
-        return {
-            'Authorization': f'OAuth {self._token}'
-        }
+        return {"Authorization": f"OAuth {self._token}"}
 
     @property
     def token(self):
@@ -61,13 +59,15 @@ class YandexDiskConnector:
             local_file_path = f"{self._local_path}/{file_name}"
 
             params = {
-                'path': yandex_file_path,
-                'overwrite': "true",  # можно также 'false' или не указывать
+                "path": yandex_file_path,
+                "overwrite": "true",  # можно также 'false' или не указывать
                 # 'fields': 'href,method' # опционально – какие поля включить в ответ
             }
-            response_get = requests.get(f"{self.url}/upload", params=params, headers=self.get_headers())
+            response_get = requests.get(
+                f"{self.url}/upload", params=params, headers=self.get_headers()
+            )
             data = response_get.json()
-            upload_url = data.get('href')
+            upload_url = data.get("href")
             if not upload_url:
                 raise FileSyncError(
                     file_name,
@@ -79,7 +79,7 @@ class YandexDiskConnector:
 
             # 3. Сохраняем исходное время модификации в custom_properties
             mtime = int(os.path.getmtime(local_file_path))  # Unix timestamp
-            if not mtime: # если нет времени изменения, оно равно времени создания
+            if not mtime:  # если нет времени изменения, оно равно времени создания
                 mtime = int(os.path.getctime(local_file_path))
             patch_params = {"path": yandex_file_path}
             patch_data = {
@@ -88,16 +88,18 @@ class YandexDiskConnector:
                 }
             }
             headers = self.get_headers()
-            headers['Content-Type'] = 'application/json'
+            headers["Content-Type"] = "application/json"
             requests.patch(
-                self.url, params=patch_params, headers=headers, json=patch_data)
-        except (requests.RequestException,
-                ValueError,
-                KeyError,
-                PermissionError,
-                OSError,
-                FileNotFoundError
-                ) as exception:
+                self.url, params=patch_params, headers=headers, json=patch_data
+            )
+        except (
+            requests.RequestException,
+            ValueError,
+            KeyError,
+            PermissionError,
+            OSError,
+            FileNotFoundError,
+        ) as exception:
             raise FileSyncError(file_name, exception)
 
     def info_files(self) -> dict:
@@ -107,8 +109,8 @@ class YandexDiskConnector:
         """
         try:
             headers = self.get_headers()
-            headers['Content-Type'] = 'application/json'
-            headers['Accept'] = 'application/json'
+            headers["Content-Type"] = "application/json"
+            headers["Accept"] = "application/json"
 
             yandex_files = {}
             info_params = {"path": self._yandex_disk_path, "limit": int(10e6)}
@@ -118,7 +120,9 @@ class YandexDiskConnector:
             if info_response.status_code == 401:
                 raise UnauthorizedError("Ошибка авторизации. Проверьте ваш ТОКЕН.")
             if info_response.status_code == 404:
-                raise FileNotFoundError(f"Каталог '{self._yandex_disk_path}' не найден на Яндекс.Диске.")
+                raise FileNotFoundError(
+                    f"Каталог '{self._yandex_disk_path}' не найден на Яндекс.Диске."
+                )
             if info_response.status_code != 200:
                 raise requests.RequestException(
                     f"Ошибка API Яндекс.Диска: {info_response.status_code} - {info_response.text}"
@@ -127,10 +131,12 @@ class YandexDiskConnector:
             files = info_response.json().get("_embedded", {}).get("items", [])
             for file in files:
                 if file["type"] == "file":
-                    yandex_files[file["name"]] = file.get("custom_properties", {}).get("original_mtime")
+                    yandex_files[file["name"]] = file.get("custom_properties", {}).get(
+                        "original_mtime"
+                    )
 
             return yandex_files
-        except requests.RequestException as e:
+        except requests.RequestException:
             raise
 
     def delete_file(self, file_name: str) -> None:
@@ -141,16 +147,17 @@ class YandexDiskConnector:
         try:
             headers = self.get_headers()
             params = {
-                'path': f"{self.yandex_disk_path}/{file_name}",
-                'force_async': "false",  # можно также 'false' или не указывать
-                'permanently': "true",
+                "path": f"{self.yandex_disk_path}/{file_name}",
+                "force_async": "false",  # можно также 'false' или не указывать
+                "permanently": "true",
                 # 'fields': 'href,method' # опционально – какие поля включить в ответ
             }
             requests.delete(self.url, params=params, headers=headers)
-        except (requests.RequestException,
-                ValueError,
-                PermissionError,
-                OSError,
-                FileNotFoundError
-                ) as exception:
+        except (
+            requests.RequestException,
+            ValueError,
+            PermissionError,
+            OSError,
+            FileNotFoundError,
+        ) as exception:
             raise FileSyncError(file_name, exception)

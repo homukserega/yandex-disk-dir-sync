@@ -142,6 +142,11 @@ text
 
     Docker / Docker Compose – контейнеризация
 
-- <i>Ссылки на официальную документацию</i>:
-- - [Документация yandex api](https://yandex.ru/dev/disk/api/concepts/about.html)
-- - [Получить токен yandex api](https://yandex.ru/dev/disk/poligon/)
+#### Проверка кода линтером, если нужно
+> ruff check ./src --select I --fix && ruff check ./src/ --fix && ruff format ./src
+
+ конфиг файл <b>ruff:</b> ruff.toml
+
+### <i>Ссылки на официальную документацию</i>:
+- [Документация yandex api](https://yandex.ru/dev/disk/api/concepts/about.html)
+- [Получить токен yandex api](https://yandex.ru/dev/disk/poligon/)

@@ -1,13 +1,14 @@
 import requests
 
+
 class FileSyncError(Exception):
     """Исключение, содержащее имя файла и исходную ошибку."""
+
     def __init__(self, filename: str, original_exception: Exception):
         self.filename = filename
         self.original_exception = original_exception
         super().__init__(
-            f"Синхронизация файла '{filename}' "
-            f"не удалась: {original_exception}"
+            f"Синхронизация файла '{filename}' не удалась: {original_exception}"
         )
 
 
@@ -24,7 +25,7 @@ def map_error_type(exception: Exception) -> str:
     if isinstance(exception, ValueError):
         return "Ошибка получения ссылки для загрузки."
     if "Указанного пути" in exception.args[0] or "Не авторизован" in exception.args[0]:
-            return f"{exception}"
+        return f"{exception}"
     return f"Неизвестная ошибка ({type(exception).__name__})"
 
 
