@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      - TZ=${TZ:-Europe/Minsk}
     networks:
       - sync-yandex-disk-dir
     volumes:
