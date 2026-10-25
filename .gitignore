@@ -1,6 +1,8 @@
 # ini
 *.ini
 
+collect_proj_files.*
+
 uploads
 
 # Created by .ignore support plugin (hsz.mobi)
