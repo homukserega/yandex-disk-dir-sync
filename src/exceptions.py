@@ -15,6 +15,11 @@ class FileSyncError(Exception):
 def map_error_type(exception: Exception) -> str:
     """Возвращает читаемое описание типа ошибки."""
     if isinstance(exception, requests.RequestException):
+        msg = str(exception) or ""
+        if msg and not msg.lower().startswith(
+                ("connection", "read timed out", "max retries")
+        ):
+            return msg
         return "Ошибка сетевого соединения."
     if isinstance(exception, FileNotFoundError):
         return "Файл не найден"
@@ -24,10 +29,15 @@ def map_error_type(exception: Exception) -> str:
         return "Ошибка файловой системы."
     if isinstance(exception, ValueError):
         return "Ошибка получения ссылки для загрузки."
-    if "Указанного пути" in exception.args[0] or "Не авторизован" in exception.args[0]:
-        return f"{exception}"
+
+    # args может быть пустым — защищаемся от IndexError
+    first_arg = exception.args[0] if exception.args else ""
+    if isinstance(first_arg, str) and (
+            "Указанного пути" in first_arg or "Не авторизован" in first_arg
+    ):
+        return first_arg
     return f"Неизвестная ошибка ({type(exception).__name__})"
 
 
-class UnauthorizedError(BaseException):
+class UnauthorizedError(Exception):
     pass

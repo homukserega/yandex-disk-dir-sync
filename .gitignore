@@ -1,6 +1,11 @@
 # ini
 *.ini
 
+data/
+logs/
+
+!.env.example
+
 collect_proj_files.*
 
 uploads
@@ -12,6 +17,11 @@ uploads
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+*.pyo
+
+.pytest_cache/
+.ruff_cache/
 
 # C extensions
 *.so
