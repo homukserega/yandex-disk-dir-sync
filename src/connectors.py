@@ -216,7 +216,12 @@ class YandexDiskConnector:
                 "path": disk_path,
                 "limit": limit,
                 "offset": offset,
-                "fields": "name,type,custom_properties",
+                "fields": (
+                    "name,type,"
+                    "_embedded.items.name,"
+                    "_embedded.items.type,"
+                    "_embedded.items.custom_properties.original_mtime"
+                ),
             }
             r = requests.get(self.url, params=params, headers=headers)
 

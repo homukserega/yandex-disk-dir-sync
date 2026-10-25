@@ -44,26 +44,11 @@ def yandex_upload(files: list, yad: YandexDiskConnector, action: str) -> None:
 
 
 def add_local_mtime_files_to_upload(local_f: dict, yandex_load_f: dict) -> list:
-    """
-    Возвращает список файлов, которые есть и локально, и на Диске,
-    но у которых отличается mtime.
-
-    Файлы с неизвестным mtime на Диске (None) пропускаются:
-    мы не можем определить, изменились ли они, а перезаливать
-    каждый цикл — значит устроить бесконечную перезакачку.
-    Для «догона» таких файлов используйте FULL_RESYNC=true.
-    """
+    """Файлы, у которых отличается mtime (оба значения известны)."""
     mtime_fix_files = []
     for f_name, local_mtime in local_f.items():
-        if f_name not in yandex_load_f:
-            continue
-        yandex_mtime = yandex_load_f[f_name]
+        yandex_mtime = yandex_load_f.get(f_name)
         if yandex_mtime is None:
-            app_custom_logger.warning(
-                f"Файл '{f_name}': mtime на Яндекс.Диске неизвестен, "
-                f"пропускаем сравнение. Используйте FULL_RESYNC=true, "
-                f"чтобы перезалить."
-            )
             continue
         if local_mtime != yandex_mtime:
             mtime_fix_files.append(f_name)
@@ -99,16 +84,28 @@ def sync_once(
         local_files, yandex_disk_files
     )
 
-    if not (delete_files or upload_files or upload_mtime_files):
-        # Расхождение есть, но действовать не на что
-        # (например, None mtime без FULL_RESYNC).
+    # Файлы, у которых на Диске потерян original_mtime (загружены старой
+    # версией кода без проверки PATCH). Перезаливаем один раз, чтобы
+    # проставить mtime через PATCH в upload_file.
+    missing_mtime_files = [
+        f for f, m in yandex_disk_files.items()
+        if m is None and f in local_files
+    ]
+
+    if not (delete_files or upload_files or upload_mtime_files or missing_mtime_files):
         return yandex_disk_files
+
+    if missing_mtime_files:
+        app_custom_logger.info(
+            f"Перезаливаю {len(missing_mtime_files)} файлов с потерянным mtime."
+        )
 
     yandex_delete(delete_files, yandex_disk, action="удален")
     if delete_files:
         yandex_disk.cleanup_empty_dirs(delete_files)
     yandex_upload(upload_files, yandex_disk, action="загружен")
     yandex_upload(upload_mtime_files, yandex_disk, action="перезаписан")
+    yandex_upload(missing_mtime_files, yandex_disk, action="перезаписан (mtime)")
 
     yandex_disk_files = yandex_disk.info_files()
     app_custom_logger.info(
