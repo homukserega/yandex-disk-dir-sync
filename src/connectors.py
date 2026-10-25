@@ -309,14 +309,23 @@ class YandexDiskConnector:
             except requests.RequestException:
                 pass
 
-    def clear_disk_dir(self, max_retries: int = 5, base_delay: float = 2.0) -> None:
-        """
-        Полностью удаляет YANDEX_DISK_PATH со всем содержимым
-        и создаёт пустую папку заново.
+    def _wait_until_gone(self, timeout: float = 60.0) -> None:
+        """Ждёт, пока YANDEX_DISK_PATH перестанет существовать (async DELETE)."""
+        headers = self.get_headers()
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            r = requests.get(
+                self.url, params={"path": self._yandex_disk_path}, headers=headers
+            )
+            if r.status_code == 404:
+                return
+            time.sleep(1)
+        raise requests.RequestException(
+            f"Ресурс '{self._yandex_disk_path}' не исчез за {timeout} сек. "
+            f"Возможно, удаление зависло."
+        )
 
-        При ошибке 423 (ресурс заблокирован) делает несколько попыток
-        с экспоненциально растущей паузой.
-        """
+    def clear_disk_dir(self, max_retries: int = 5, base_delay: float = 2.0) -> None:
         headers = self.get_headers()
         for attempt in range(1, max_retries + 1):
             r = requests.delete(
@@ -325,8 +334,15 @@ class YandexDiskConnector:
                 headers=headers,
             )
 
-            if r.status_code in (200, 202, 204, 404):
-                # Удаление запущено, уже удалено или папки не было — успех.
+            if r.status_code in (200, 204, 404):
+                # синхронное удаление или папки не было
+                self._ensured_folders.clear()
+                self._ensure_folder(self._yandex_disk_path)
+                return
+
+            if r.status_code == 202:
+                # асинхронное удаление — ждём завершения
+                self._wait_until_gone(timeout=60.0)
                 self._ensured_folders.clear()
                 self._ensure_folder(self._yandex_disk_path)
                 return
@@ -335,15 +351,9 @@ class YandexDiskConnector:
                 if attempt == max_retries:
                     raise requests.RequestException(
                         f"Ресурс '{self._yandex_disk_path}' остаётся заблокированным "
-                        f"после {max_retries} попыток. "
-                        f"Убедитесь, что никакие другие процессы не используют эту папку."
+                        f"после {max_retries} попыток."
                     )
                 delay = base_delay * (2 ** (attempt - 1))
-                # Здесь можно добавить логирование, если есть доступ к логгеру
-                # app_custom_logger.warning(
-                #     f"Попытка {attempt}/{max_retries}: ресурс заблокирован, "
-                #     f"повтор через {delay:.1f} сек."
-                # )
                 time.sleep(delay)
                 continue
 
